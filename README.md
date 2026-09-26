@@ -78,4 +78,4 @@ Ledger CSV  ──┘   two separate tables         deduped, typed) └─ SILVE
 
 ## Author
 
-[Your Name] — ExcelR x KIIT Capstone, 2026
+Musarraf Khan — ExcelR x KIIT Capstone, 2026
