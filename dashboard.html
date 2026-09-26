@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SettleSync — Reconciliation Dashboard</title>
+<style>
+  :root{
+    --bg:#eef1f8; --card:#ffffff; --text:#1a2233; --muted:#5b6577;
+    --navy:#1f3864; --accent:#3b6fd6; --accent2:#8b5cf6; --line:#e3e8f2;
+    --pos:#c0392b; --neg:#1f8a53; --chip:#eef2fb;
+    box-sizing:border-box;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f1219; --card:#171c27; --text:#e8ecf4; --muted:#98a2b8;
+      --navy:#8fb0ef; --accent:#6d9bf0; --accent2:#a78bfa; --line:#262d3d; --chip:#1f2636;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1219; --card:#171c27; --text:#e8ecf4; --muted:#98a2b8;
+    --navy:#8fb0ef; --accent:#6d9bf0; --accent2:#a78bfa; --line:#262d3d; --chip:#1f2636;
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);
+  }
+  .hero{
+    background:linear-gradient(135deg,var(--navy),var(--accent2));
+    color:#fff; padding:36px 20px 60px; text-align:center;
+    padding-top:calc(36px + env(safe-area-inset-top,0px));
+  }
+  .hero h1{margin:0 0 6px;font-size:1.9rem;letter-spacing:.02em;}
+  .hero .tag{opacity:.92;font-size:.98rem;margin:0 0 20px;}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:18px;}
+  .badge{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);
+    padding:5px 12px;border-radius:999px;font-size:.78rem;backdrop-filter:blur(2px);}
+  .idcard{
+    display:inline-flex;gap:18px;flex-wrap:wrap;justify-content:center;align-items:center;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);
+    border-radius:14px;padding:12px 22px;font-size:.85rem;
+  }
+  .idcard b{font-weight:700;}
+  .idcard a{color:#fff;text-decoration:underline;}
+  .wrap{max-width:960px;margin:-38px auto 0;padding:0 20px 48px;position:relative;}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;}
+  @media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 12px;
+    text-align:center;box-shadow:0 8px 20px -12px rgba(20,30,60,.25);}
+  .stat .n{font-size:1.7rem;font-weight:800;color:var(--accent);}
+  .stat .l{font-size:.76rem;color:var(--muted);margin-top:4px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;
+    margin-bottom:20px;overflow-x:auto;box-shadow:0 8px 20px -14px rgba(20,30,60,.2);}
+  .card h2{font-size:1.08rem;margin:0 0 6px;display:flex;align-items:center;gap:8px;}
+  .card .note{color:var(--muted);font-size:.83rem;margin:0 0 16px;line-height:1.5;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:700px){.grid2{grid-template-columns:1fr;}}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:.85rem;}
+  th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;}
+  th:first-child,td:first-child{text-align:left;}
+  th{color:var(--muted);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;}
+  .bar-row{display:flex;align-items:center;gap:10px;margin:9px 0;}
+  .bar-label{width:88px;font-size:.78rem;color:var(--muted);flex-shrink:0;}
+  .bar-track{flex:1;background:var(--chip);border-radius:6px;height:16px;overflow:hidden;}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:6px;
+    transition:width .6s ease;}
+  .bar-val{width:88px;text-align:right;font-size:.78rem;color:var(--text);flex-shrink:0;}
+  .neg{color:var(--pos);font-weight:600;} .pos{color:var(--neg);}
+  .pipeline{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;}
+  .step{flex:1;min-width:120px;background:var(--chip);border:1px solid var(--line);border-radius:12px;
+    padding:14px 12px;text-align:center;}
+  .step .num{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;margin:0 auto 8px;}
+  .step .t{font-weight:700;font-size:.85rem;margin-bottom:3px;}
+  .step .d{font-size:.74rem;color:var(--muted);}
+  .arrow{align-self:center;color:var(--muted);font-size:1.1rem;}
+  @media (max-width:700px){.arrow{transform:rotate(90deg);}}
+  .status-list{list-style:none;padding:0;margin:0;}
+  .status-list li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:.85rem;}
+  .status-list li:last-child{border-bottom:none;}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;}
+  .findings{margin:0;padding-left:18px;font-size:.86rem;line-height:1.7;color:var(--text);}
+  footer{color:var(--muted);font-size:.78rem;text-align:center;margin-top:24px;line-height:1.8;}
+  code{background:var(--chip);padding:1px 6px;border-radius:4px;font-size:.85em;}
+</style>
+</head>
+<body>
+  <div class="hero">
+    <h1>SettleSync</h1>
+    <p class="tag">Gateway ↔ Ledger Reconciliation Pipeline · Databricks + Snowflake</p>
+    <div class="badges">
+      <span class="badge">ExcelR × KIIT Capstone</span>
+      <span class="badge">Finance &amp; Fintech</span>
+      <span class="badge">Topic 10 — Stretch</span>
+      <span class="badge">June 2025 data</span>
+    </div>
+    <div class="idcard">
+      <span>👤 <b>Musarraf Khan</b></span>
+      <span>🎓 Roll No. <b>24057045</b></span>
+      <span>✉️ <a href="mailto:musharaf.khan0987@gmail.com">musharaf.khan0987@gmail.com</a></span>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="stats">
+      <div class="stat"><div class="n">208</div><div class="l">Gateway-only</div></div>
+      <div class="stat"><div class="n">193</div><div class="l">Ledger-only</div></div>
+      <div class="stat"><div class="n">450</div><div class="l">Amount mismatches</div></div>
+      <div class="stat"><div class="n">41,401</div><div class="l">Total reconciled rows</div></div>
+    </div>
+
+    <div class="card">
+      <h2>📌 The problem</h2>
+      <p class="note" style="margin-bottom:0;">
+        The gateway reports 41,208 settled transactions for June 2025; the finance ledger reports 41,193.
+        Netting the two suggests a gap of just 15 — but that single number hides 208 transactions the ledger
+        never saw, 193 the gateway lacks, and 450 more that both systems hold yet disagree on. This project
+        replaces that misleading net figure with a full, reasoned break list built on Databricks and served
+        through Snowflake.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>🏗️ Pipeline architecture</h2>
+      <p class="note">Two systems stay apart until Silver makes an explicit, documented matching decision — nothing is unioned or cleaned in Bronze.</p>
+      <div class="pipeline">
+        <div class="step"><div class="num">1</div><div class="t">Bronze</div><div class="d">Raw extracts landed as-is, all-string, two separate tables</div></div>
+        <div class="arrow">→</div>
+        <div class="step"><div class="num">2</div><div class="t">Silver</div><div class="d">Trim keys, try_cast amounts, dedupe, decisions logged</div></div>
+        <div class="arrow">→</div>
+        <div class="step"><div class="num">3</div><div class="t">Export</div><div class="d">Silver tables written to CSV in the Databricks Volume</div></div>
+        <div class="arrow">→</div>
+        <div class="step"><div class="num">4</div><div class="t">Stage + Load</div><div class="d">Uploaded to a Snowflake stage, loaded via COPY INTO</div></div>
+        <div class="arrow">→</div>
+        <div class="step"><div class="num">5</div><div class="t">Reconcile</div><div class="d">FULL OUTER JOIN answers the 3 business questions in SQL</div></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>🧭 Match status breakdown</h2>
+        <p class="note">How all 41,401 reconciled rows are classified.</p>
+        <ul class="status-list">
+          <li><span><span class="dot" style="background:#1f8a53"></span>MATCHED</span><b>39,900</b></li>
+          <li><span><span class="dot" style="background:#c0392b"></span>AMOUNT_MISMATCH</span><b>450</b></li>
+          <li><span><span class="dot" style="background:#e0a800"></span>DATE_MISMATCH</span><b>300</b></li>
+          <li><span><span class="dot" style="background:#8b5cf6"></span>GATEWAY_AMOUNT_MISSING</span><b>350</b></li>
+          <li><span><span class="dot" style="background:#3b6fd6"></span>GATEWAY_ONLY</span><b>208</b></li>
+          <li><span><span class="dot" style="background:#5b6577"></span>LEDGER_ONLY</span><b>193</b></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>🔍 Key findings</h2>
+        <ol class="findings">
+          <li>Untrimmed keys create 75 false breaks per side (283/268 instead of the true 208/193).</li>
+          <li>350 gateway amounts are unreadable ('NA') — logged and kept, not dropped.</li>
+          <li>210 ledger amounts use comma formatting (e.g. 12,450.00) and need stripping before <code>try_cast</code>.</li>
+          <li>400 of the 450 mismatches are recurring fee deductions (~1.77%), not real errors.</li>
+          <li>A FULL OUTER JOIN is required — INNER hides 401 rows, LEFT hides all 193 ledger-only rows.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📊 Top 7 break days by gross break value</h2>
+      <p class="note">Ranked by gross break (₹), from the daily reconciliation query — 30 days were reconciled in total.</p>
+      <div id="bars"></div>
+    </div>
+
+    <div class="card">
+      <h2>📅 Daily breakdown</h2>
+      <p class="note">gross break = sum of |gateway − ledger| · net break = signed sum (gateway − ledger)</p>
+      <table>
+        <thead><tr><th>Date</th><th>Gateway-only</th><th>Ledger-only</th><th>Amt. missing</th><th>Amt. mismatch</th><th>Gross break (₹)</th><th>Net break (₹)</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>🛠️ Tech stack</h2>
+      <div class="badges" style="justify-content:flex-start;">
+        <span class="badge" style="background:var(--chip);color:var(--text);border-color:var(--line);">Databricks</span>
+        <span class="badge" style="background:var(--chip);color:var(--text);border-color:var(--line);">PySpark</span>
+        <span class="badge" style="background:var(--chip);color:var(--text);border-color:var(--line);">Delta Lake</span>
+        <span class="badge" style="background:var(--chip);color:var(--text);border-color:var(--line);">Snowflake SQL</span>
+        <span class="badge" style="background:var(--chip);color:var(--text);border-color:var(--line);">Python</span>
+        <span class="badge" style="background:var(--chip);color:var(--text);border-color:var(--line);">GitHub</span>
+      </div>
+    </div>
+
+    <footer>
+      Built by <b>Musarraf Khan</b> (Roll No. 24057045) · <a href="mailto:musharaf.khan0987@gmail.com" style="color:inherit;">musharaf.khan0987@gmail.com</a><br>
+      ExcelR × KIIT Capstone — Finance &amp; Fintech, Topic 10: "Reconciliation — Two Systems, One Truth"<br>
+      Pipeline: Bronze → Silver → CSV → Snowflake stage → <code>COPY INTO</code> → <code>FULL OUTER JOIN</code> reconciliation.
+    </footer>
+  </div>
+
+<script>
+const rows = [
+  ["2025-06-03", 8, 8, 19, 10, 68132.33, -48563.17],
+  ["2025-06-09", 10, 10, 6, 14, 66105.74, -48081.36],
+  ["2025-06-28", 9, 10, 11, 17, 52665.63, -27532.77],
+  ["2025-06-24", 5, 4, 10, 24, 52614.49, -30612.69],
+  ["2025-06-13", 6, 7, 13, 18, 48938.95, -24866.27],
+  ["2025-06-08", 4, 6, 15, 23, 48717.24, -28918.40],
+  ["2025-06-11", 3, 7, 12, 12, 45628.05, -40610.09],
+];
+const maxGross = Math.max(...rows.map(r => r[5]));
+const bars = document.getElementById("bars");
+rows.forEach(r => {
+  const pct = (r[5] / maxGross * 100).toFixed(1);
+  const div = document.createElement("div");
+  div.className = "bar-row";
+  div.innerHTML = `<div class="bar-label">${r[0]}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+    <div class="bar-val">₹${r[5].toLocaleString("en-IN",{minimumFractionDigits:2})}</div>`;
+  bars.appendChild(div);
+});
+const tbody = document.getElementById("tbody");
+rows.forEach(r => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td>
+    <td>₹${r[5].toLocaleString("en-IN",{minimumFractionDigits:2})}</td>
+    <td class="neg">−₹${Math.abs(r[6]).toLocaleString("en-IN",{minimumFractionDigits:2})}</td>`;
+  tbody.appendChild(tr);
+});
+</script>
+</body>
+</html>
